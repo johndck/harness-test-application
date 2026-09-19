@@ -4,6 +4,9 @@ import { stdin, stdout } from "node:process";
 import testCall from "./llmClient.js";
 import { tools } from "./tools/tools.js";
 import { addServiceNowAction } from "../lib/addSNaction.js";
+import createLogger from "./logger.js";
+
+
 
 const rl = readline.createInterface({ input: stdin, output: stdout });
 
@@ -17,9 +20,10 @@ async function callLLM(messages, tools, toolChoice) {
 
 
 async function chatLoop() {
+  const logger = createLogger("orchestrator");
   const messages = []; // grows every turn — this IS the conversation history
 
-  console.log("Chat started. Type 'exit' to quit.\n");
+  console.log("Chat started & logging initiated. Type 'exit' to quit.\n");
 
   while (true) {
     const userInput = await rl.question("You: ");
@@ -32,7 +36,22 @@ async function chatLoop() {
 
     messages.push({ role: "user", content: userInput });
 
+    logger.section(`User message ${messages.length}`);     // NEW
+    logger.log("llm_request", {                            // NEW
+      messageCount: messages.length,
+      newMessage: messages[messages.length - 1],
+      tools: tools.map((t) => t.function?.name),
+    });
+
+    const timeNow = Date.now();
+
+
     const assistantMessage = await callLLM(messages, tools, undefined);
+
+    logger.log("llm_response", {                           // NEW
+      ms: Date.now() - timeNow,
+      assistantMessage,
+    });
 
     messages.push(assistantMessage); // add the reply to history too
 
@@ -71,6 +90,7 @@ async function chatLoop() {
 
   }
 
+  logger.close({ totalMessages: messages.length });  
   rl.close();
 }
 
