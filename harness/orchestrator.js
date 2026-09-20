@@ -56,19 +56,29 @@ async function chatLoop() {
     messages.push(assistantMessage); // add the reply to history too
 
     if (assistantMessage.tool_calls) {
+
+      logger.section("Tool calls");
+
+
       for (const toolCall of assistantMessage.tool_calls) {
         const toolName = toolCall.function.name;
         const toolArgs = JSON.parse(toolCall.function.arguments);
         console.log(`Tool: ${toolName}`);
         console.log(`Tool Args: ${JSON.stringify(toolArgs)}`);
 
+        logger.log("tool_call", { id: toolCall.id, toolName, toolArgs });
+
+
         let result;
+        const toolStart = Date.now();
 
         try{
 
           if (toolName === "addServiceNowAction") {
             result = await addServiceNowAction(toolArgs);
+            
           } else {
+            logger.error("tool_failed", error);  
             result={error: `Unknown tool: ${toolName}`};
           }
 
@@ -76,10 +86,38 @@ async function chatLoop() {
         catch(error){
           result={error: `Tool execution failed: ${error.message}`};
         };
+
+        logger.log("tool_result", {                                        // NEW
+          id: toolCall.id,
+          toolName,
+          ms: Date.now() - toolStart,
+          result,
+        });
+
+
+
         messages.push({ role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(result)});
       }
 
+      logger.section("Final response");                                    // NEW
+      logger.log("llm_request", {                                          // NEW
+        step: "after_tool_results",
+        messageCount: messages.length,
+      });
+
+
+      const timeNow = Date.now();
+
       const finalMessage = await callLLM(messages, tools, undefined);
+
+      logger.log("llm_response", {                                         // NEW
+        step: "after_tool_results",
+        ms: Date.now() - t1,
+        finalMessage,
+      });
+
+
+      
       messages.push(finalMessage);
 
       console.log(`Assistant: ${finalMessage.content}\n`);
