@@ -62,9 +62,10 @@ async function chatLoop() {
 
       for (const toolCall of assistantMessage.tool_calls) {
         const toolName = toolCall.function.name;
-        const toolArgs = JSON.parse(toolCall.function.arguments);
-        console.log(`Tool: ${toolName}`);
-        console.log(`Tool Args: ${JSON.stringify(toolArgs)}`);
+        const rawArgs = toolCall.function.arguments; 
+        console.log(`Here is the tool call: ${toolName}`);
+
+        
 
         logger.log("tool_call", { id: toolCall.id, toolName, toolArgs });
 
@@ -73,6 +74,10 @@ async function chatLoop() {
         const toolStart = Date.now();
 
         try{
+
+          const toolArgs = JSON.parse(rawArgs);          // moved inside: this is the line that can throw
+    console.log(`Tool Args: ${JSON.stringify(toolArgs)}`);
+    
 
           if (toolName === "addServiceNowAction") {
             result = await addServiceNowAction(toolArgs);
@@ -84,7 +89,9 @@ async function chatLoop() {
 
         }
         catch(error){
+          logger.error("tool_failed", error);
           result={error: `Tool execution failed: ${error.message}`};
+
         };
 
         logger.log("tool_result", {                                        // NEW
