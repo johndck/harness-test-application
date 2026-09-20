@@ -128,8 +128,10 @@ async function chatLoop() {
       messages.push(currentMessage);
       round++;
 
-      console.log(`Assistant: ${currentMessage.content}\n`);
+      
     };
+
+    console.log(`Assistant: ${currentMessage.content}\n`);
   }
   logger.close({ totalMessages: messages.length });
   rl.close();
