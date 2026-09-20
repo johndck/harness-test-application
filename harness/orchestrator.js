@@ -67,7 +67,7 @@ async function chatLoop() {
 
         
 
-        logger.log("tool_call", { id: toolCall.id, toolName, toolArgs });
+        logger.log("tool_call", { id: toolCall.id, toolName, rawArgs });
 
 
         let result;
@@ -119,7 +119,7 @@ async function chatLoop() {
 
       logger.log("llm_response", {                                         // NEW
         step: "after_tool_results",
-        ms: Date.now() - t1,
+        ms: Date.now() - timeNow,
         finalMessage,
       });
 
