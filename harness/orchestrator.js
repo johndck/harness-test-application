@@ -26,7 +26,7 @@ async function chatLoop() {
   console.log("Chat started & logging initiated. Type 'exit' to quit.\n");
 
   while (true) {
-    const userInput = await rl.question("You: ");
+    const userInput = await rl.question("Enter your prompt: ");
     if (userInput.toLowerCase() === "exit"){
         console.log(JSON.stringify(messages, null, 2));
         console.log("--------------------------------");
@@ -55,12 +55,19 @@ async function chatLoop() {
 
     messages.push(assistantMessage); // add the reply to history too
 
-    if (assistantMessage.tool_calls) {
+    let currentMessage = assistantMessage;
+    let round = 1;
+
+    if (!currentMessage.tool_calls) {
+      console.log(`Assistant: ${currentMessage.content}\n`);   // NEW: handles the no-tool-call case
+    }
+
+    while (currentMessage.tool_calls) {
 
       logger.section("Tool calls");
 
 
-      for (const toolCall of assistantMessage.tool_calls) {
+      for (const toolCall of currentMessage.tool_calls) {
         const toolName = toolCall.function.name;
         const rawArgs = toolCall.function.arguments; 
         console.log(`Here is the tool call: ${toolName}`);
@@ -83,7 +90,7 @@ async function chatLoop() {
             result = await addServiceNowAction(toolArgs);
             
           } else {
-            logger.error("tool_failed", error);  
+            logger.error("tool_failed", { toolName });  
             result={error: `Unknown tool: ${toolName}`};
           }
 
@@ -106,37 +113,25 @@ async function chatLoop() {
         messages.push({ role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(result)});
       }
 
-      logger.section("Final response");                                    // NEW
-      logger.log("llm_request", {                                          // NEW
-        step: "after_tool_results",
-        messageCount: messages.length,
-      });
-
-
+      logger.section("Next LLM response");  
       const timeNow = Date.now();
-
-      const finalMessage = await callLLM(messages, tools, undefined);
+      currentMessage = await callLLM(messages, tools, undefined);
 
       logger.log("llm_response", {                                         // NEW
-        step: "after_tool_results",
+        step: `after_tool_results_round_${round}`,
         ms: Date.now() - timeNow,
-        finalMessage,
+        finalMessage: currentMessage,
       });
 
 
       
-      messages.push(finalMessage);
+      messages.push(currentMessage);
+      round++;
 
-      console.log(`Assistant: ${finalMessage.content}\n`);
-
-    } else{
-      console.log(`Assistant: ${assistantMessage.content}\n`);
+      console.log(`Assistant: ${currentMessage.content}\n`);
     };
-
   }
-
-  logger.close({ totalMessages: messages.length });  
+  logger.close({ totalMessages: messages.length });
   rl.close();
 }
-
 export default chatLoop;
