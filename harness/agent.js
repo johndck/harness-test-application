@@ -2,19 +2,56 @@
 import testCall from "./llmClient.js";
 import { tools } from "./tools/tools.js";
 import { addServiceNowAction } from "../lib/addSNaction.js";
+import resolve from "./resolver.js";
+import loadSkill from "./loadskill.js";
 
-async function callLLM(messages) {
-  const response = await testCall(messages, tools, undefined);
+async function callLLM(messages, skillTools, toolChoice) {
+  const hasTools = skillTools.length > 0;
+  const response = await testCall(
+    messages,
+    hasTools ? skillTools : undefined,
+    hasTools ? toolChoice : undefined   // tool_choice without tools is an API error
+  );
   return response.choices[0].message;
 }
+
 
 async function runAgent(messages, logger) {
   const maxSteps = 15;
 
+  const skillName = await resolve(messages, logger);
+  console.log("Resolved skill:", skillName);
+
+  if (skillName === "none") {
+    logger.log("no_skill", { skillName });
+    return { status: "done", content: "No skill matches that request." };
+  }
+  
+  const skill = await loadSkill(skillName, logger);
+
+  if (!skill) {
+    logger.log("skill_load_failed", { skillName });
+    return { status: "done", content: `Skill "${skillName}" could not be loaded.` };
+  }
+
+  const sys = { role: "system", content: skill.body };
+if (messages[0]?.role === "system") messages[0] = sys;
+else messages.unshift(sys);
+
+const skillTools = tools.filter((t) => skill.tools.includes(t.function.name));
+logger.log("skill_loaded", {
+  skillName,
+  requested: skill.tools,
+  sent: skillTools.map((t) => t.function.name),
+});
+
+
+
+
   for (let step = 1; step <= maxSteps; step++) {
     const start = Date.now();
     logger.log("llm_request", { step, messages });
-    const assistantMessage = await callLLM(messages);
+    const assistantMessage = await callLLM(messages, skillTools);
     logger.log("llm_response", { step, ms: Date.now() - start, assistantMessage });
     messages.push(assistantMessage);
 
@@ -31,13 +68,18 @@ async function runAgent(messages, logger) {
 
       let result;
       const toolStart = Date.now();
+      const handlers = { addServiceNowAction };
       try {
         const toolArgs = JSON.parse(rawArgs);
-        if (toolName === "addServiceNowAction") {
-          result = await addServiceNowAction(toolArgs);
-        } else {
-          result = { error: `Unknown tool: ${toolName}` };
-        }
+
+
+
+        if (!skill.tools.includes(toolName)) {
+  logger.log("tool_rejected", { toolName, allowed: skill.tools });
+  result = { error: `Tool ${toolName} is not allowed in this skill` };
+} else {
+  result = await handlers[toolName](toolArgs);
+}
       } catch (error) {
         logger.error("tool_failed", error);
         result = { error: `Tool execution failed: ${error.message}` };
