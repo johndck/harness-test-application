@@ -9,6 +9,7 @@ async function chat() {
   const rl = readline.createInterface({ input: stdin, output: stdout });
   const logger = createLogger("chat-interface");
   const messages = [];
+  const session = { activeSkill: null };
 
   console.log("Chat started & logging initiated. Type 'exit' to quit.\n");
 
@@ -20,6 +21,8 @@ async function chat() {
     let content = input;
 
 if (input.startsWith("file:")) {
+  session.activeSkill = null;
+  messages.length = 0;
   const path = input.slice(5).trim();       // everything after "file:"
   try {
     content = await fs.readFile(path, "utf8");
@@ -35,7 +38,7 @@ if (input.startsWith("file:")) {
     messages.push({ role: "user", content });
     logger.section(`User message ${messages.length}`);
 
-    const result = await runAgent(messages, logger);
+    const result = await runAgent(messages, logger, session);
 
     console.log(
       result.status === "done"

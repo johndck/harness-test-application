@@ -2,7 +2,7 @@
 import testCall from "./llmClient.js";
 import { tools } from "./tools/tools.js";
 import { addServiceNowAction } from "../lib/addSNaction.js";
-import resolve from "./resolver.js";
+import resolve, { isStillOnTask } from "./resolver.js";
 import loadSkill from "./loadskill.js";
 
 async function callLLM(messages, skillTools, toolChoice) {
@@ -16,11 +16,18 @@ async function callLLM(messages, skillTools, toolChoice) {
 }
 
 
-async function runAgent(messages, logger) {
+async function runAgent(messages, logger, session) {
   const maxSteps = 15;
 
-  const skillName = await resolve(messages, logger);
-  console.log("Resolved skill:", skillName);
+  let skillName;
+if (session.activeSkill) {
+  const onTask = await isStillOnTask(session.activeSkill, messages, logger);
+  skillName = onTask ? session.activeSkill : await resolve(messages, logger);
+} else {
+  skillName = await resolve(messages, logger);
+}
+logger.log("skill_resolved", { skillName });
+
 
   if (skillName === "none") {
     logger.log("no_skill", { skillName });
@@ -34,6 +41,8 @@ async function runAgent(messages, logger) {
     return { status: "done", content: `Skill "${skillName}" could not be loaded.` };
   }
 
+  session.activeSkill = skillName;
+
   const sys = { role: "system", content: skill.body };
 if (messages[0]?.role === "system") messages[0] = sys;
 else messages.unshift(sys);
@@ -44,9 +53,6 @@ logger.log("skill_loaded", {
   requested: skill.tools,
   sent: skillTools.map((t) => t.function.name),
 });
-
-
-
 
   for (let step = 1; step <= maxSteps; step++) {
     const start = Date.now();
@@ -87,7 +93,16 @@ logger.log("skill_loaded", {
 
       logger.log("tool_result", { id: toolCall.id, toolName, ms: Date.now() - toolStart, result });
       messages.push({ role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(result) });
+
+
+      if (!result.error) {
+        session.activeSkill = null;
+      }
+
     }
+
+  
+
   }
 
   return { status: "max_steps" };

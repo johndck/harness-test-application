@@ -7,6 +7,40 @@ import testCall from "./llmClient.js";
 const RESOLVER_PATH = "library/skills/resolver.md";
 const MAX_INPUT_CHARS = 1500;
 
+
+export async function isStillOnTask(activeSkill, messages, logger) {
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    const input = (lastUser?.content ?? "").slice(0, 1500);
+  
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    const lastAssistantText = lastAssistant?.content ?? "(no prior reply)";
+  
+    const checkMessages = [
+      {
+        role: "system",
+        content:
+          `A skill called "${activeSkill}" is currently handling a task with the user.\n` +
+          `Its last message to the user was:\n"""${lastAssistantText}"""\n\n` +
+          `The user just replied:\n"""${input}"""\n\n` +
+          `Is the user's reply continuing that same task (answering a question, ` +
+          `confirming, correcting a detail), or is it an unrelated new request?\n` +
+          `Reply with exactly one word: "continue" or "new". No other text.`,
+      },
+    ];
+  
+    try {
+      const response = await testCall(checkMessages, undefined, undefined);
+      const raw = response.choices[0].message.content ?? "";
+      const stillOnTask = raw.trim().toLowerCase().startsWith("continue");
+      logger.log("task_continuity_check", { activeSkill, raw, stillOnTask });
+      return stillOnTask;
+    } catch (error) {
+      logger.error("task_continuity_check_failed", error);
+      return true; // on error, assume continue rather than losing progress
+    }
+  }
+
+
 async function resolve(messages, logger) {
   // 1. Read the index and extract the valid skill names
   const index = await fs.readFile(RESOLVER_PATH, "utf8");
@@ -38,6 +72,7 @@ async function resolve(messages, logger) {
   const skill = names.includes(cleaned) ? cleaned : "none";
 
   logger.log("resolver", { raw, skill });
+  console.log("Resolved skill:", skill);
   return skill;
 }
 
