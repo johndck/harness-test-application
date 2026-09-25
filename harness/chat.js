@@ -18,22 +18,21 @@ async function chat() {
     if (input.toLowerCase() === "exit") break;
 
 
-    let content = input;
-
-if (input.startsWith("file:")) {
-  session.activeSkill = null;
-  messages.length = 0;
-  const path = input.slice(5).trim();       // everything after "file:"
-  try {
-    content = await fs.readFile(path, "utf8");
-    console.log(`Loaded ${path} (${content.length} characters)\n`)
-    logger.section(`Loaded file ${path} (${content.length} characters)`);
-    
-  } catch (err) {
-    console.log(`Could not read ${path}: ${err.message}\n`);
-    continue;                                // go back and ask for another prompt
-  }
-}
+        let content = input;
+        if (input.startsWith("file:")) {
+        session.activeSkill = null;
+        messages.length = 0;
+        const path = input.slice(5).trim();       // everything after "file:"
+        try {
+            content = await fs.readFile(path, "utf8");
+            console.log(`Loaded ${path} (${content.length} characters)\n`)
+            logger.section(`Loaded file ${path} (${content.length} characters)`);
+            
+          } catch (err) {
+            console.log(`Could not read ${path}: ${err.message}\n`);
+            continue;                                // go back and ask for another prompt
+          }
+                                      }
 
     messages.push({ role: "user", content });
     logger.section(`User message ${messages.length}`);
