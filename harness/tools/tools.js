@@ -18,13 +18,43 @@ export const tools = [
               work_notes: { type: "string" },
               created_by: { type: "string" },
               assigned_to: { type: "string" },
-              action_due_date: { type: "string" }
+              action_due_date: { type: "string" },
             },
-            required: ["short_description", "description", "priority"]
-          }
+            required: ["short_description", "description", "priority"],
+          },
         },
-        required: ["body"]
-      }
-    }
-  }
+        required: ["body"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "addServiceNowActions",
+      description: "Creates multiple action records in a ServiceNow table.",
+      parameters: {
+        type: "object",
+        properties: {
+          actions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                short_description: { type: "string" },
+                description: { type: "string" },
+                priority: { type: "integer" },
+                parent: { type: "string" },
+                work_notes: { type: "string" },
+                created_by: { type: "string" },
+                assigned_to: { type: "string" },
+                action_due_date: { type: "string" },
+              },
+              required: ["short_description", "description", "priority"],
+            },
+          },
+        },
+        required: ["actions"],
+      },
+    },
+  },
 ];
