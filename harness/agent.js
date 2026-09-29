@@ -2,6 +2,8 @@
 import testCall from "./llmClient.js";
 import { tools } from "./tools/tools.js";
 import { addServiceNowAction } from "../lib/addSNaction.js";
+import addServiceNowActions from "../lib/addSNactions.js";
+
 import resolve, { isStillOnTask } from "./resolver.js";
 import loadSkill from "./loadskill.js";
 
@@ -15,17 +17,27 @@ async function callLLM(messages, skillTools, toolChoice) {
   return response.choices[0].message;
 }
 
-async function runAgent(messages, logger, session) {
+async function runAgent(messages, logger, session, preIdSkill) {
   const maxSteps = 15;
 
   let skillName;
-  if (session.activeSkill) {
-    const onTask = await isStillOnTask(session.activeSkill, messages, logger);
-    skillName = onTask ? session.activeSkill : await resolve(messages, logger);
+
+  if (preIdSkill) {
+    skillName = preIdSkill;
+    logger.log("pre_id_skill - came through", { skillName });
   } else {
-    skillName = await resolve(messages, logger);
+    if (session.activeSkill) {
+      const onTask = await isStillOnTask(session.activeSkill, messages, logger);
+      skillName = onTask
+        ? session.activeSkill
+        : await resolve(messages, logger);
+
+      logger.log("skill_resolved", { skillName });
+    } else {
+      skillName = await resolve(messages, logger);
+      logger.log("skill_resolved", { skillName });
+    }
   }
-  logger.log("skill_resolved", { skillName });
 
   if (skillName === "none") {
     logger.log("no_skill", { skillName });
@@ -80,7 +92,7 @@ async function runAgent(messages, logger, session) {
 
       let result;
       const toolStart = Date.now();
-      const handlers = { addServiceNowAction };
+      const handlers = { addServiceNowAction, addServiceNowActions };
       try {
         const toolArgs = JSON.parse(rawArgs);
 

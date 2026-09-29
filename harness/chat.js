@@ -17,32 +17,32 @@ async function chat() {
     const input = await rl.question("Enter your prompt: ");
     if (input.toLowerCase() === "exit") break;
 
-
-        let content = input;
-        if (input.startsWith("file:")) {
-        session.activeSkill = null;
-        messages.length = 0;
-        const path = input.slice(5).trim();       // everything after "file:"
-        try {
-            content = await fs.readFile(path, "utf8");
-            console.log(`Loaded ${path} (${content.length} characters)\n`)
-            logger.section(`Loaded file ${path} (${content.length} characters)`);
-            
-          } catch (err) {
-            console.log(`Could not read ${path}: ${err.message}\n`);
-            continue;                                // go back and ask for another prompt
-          }
-                                      }
+    let content = input;
+    let preIdSkill = null;
+    if (input.startsWith("file:")) {
+      session.activeSkill = null;
+      preIdSkill = "meeting-actions";
+      messages.length = 0;
+      const path = input.slice(5).trim(); // everything after "file:"
+      try {
+        content = await fs.readFile(path, "utf8");
+        console.log(`Loaded ${path} (${content.length} characters)\n`);
+        logger.section(`Loaded file ${path} (${content.length} characters)`);
+      } catch (err) {
+        console.log(`Could not read ${path}: ${err.message}\n`);
+        continue; // go back and ask for another prompt
+      }
+    }
 
     messages.push({ role: "user", content });
     logger.section(`User message ${messages.length}`);
 
-    const result = await runAgent(messages, logger, session);
+    const result = await runAgent(messages, logger, session, preIdSkill);
 
     console.log(
       result.status === "done"
         ? `Assistant: ${result.content}\n`
-        : `Stopped: ${result.status}\n`
+        : `Stopped: ${result.status}\n`,
     );
   }
 
