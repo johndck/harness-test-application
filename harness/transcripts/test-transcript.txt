@@ -1,0 +1,22 @@
+Meeting: Platform Delivery Weekly
+Date: 29 September 2026
+Attendees: John Dick (chair), admin
+
+[00:00:12] John Dick: Right, let's run through the actions for this week.
+
+[00:01:05] John Dick: First one. Can you send the signed statement of work to Acme Ltd by email? Priority 1.
+[00:01:14] admin: Yes, I'll email the signed SOW to Acme by 10 October 2026. It's done once Acme have it in their inbox.
+
+[00:02:30] John Dick: Next, the CMDB data quality report.
+[00:02:41] admin: I'll produce the CMDB data quality report as a PDF and upload it to the Platform SharePoint site by 10 October 2027. Priority 3.
+
+[00:03:55] John Dick: We also need the Dynatrace integration test plan.
+[00:04:06] admin: Leave that with me. I'll write the Dynatrace integration test plan and send it to John for sign-off by 10 November 2026. Priority 2.
+
+[00:05:20] John Dick: And the licence renewal for the monitoring tool.
+[00:05:31] admin: I'll submit the purchase order for the monitoring tool licence renewal in the finance system by 10 October 2028. Priority 2.
+
+[00:06:44] John Dick: Last one, the access review.
+[00:06:52] admin: I'll complete the quarterly user access review for the ServiceNow production instance and record the sign-off in the audit log by 10 October 2026. Priority 1.
+
+[00:07:40] John Dick: Great, that's everything. Thanks all.

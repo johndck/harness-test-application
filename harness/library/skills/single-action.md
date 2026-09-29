@@ -68,13 +68,13 @@ Never call the tool on the same turn as the replay. The user must reply first.
    - assigned_to: the owner
    - priority: the user must set a priority for the action - P1, P2 or P3
    - action_due_date: YYYY-MM-DD
-2. On success, reply in this format. Take the action number from the `number` field of the tool result. Take every other value from what the user confirmed, not from the tool result (`assigned_to` in the result is an ID, not a name).
+2. On success, reply in this format. Take the action number from the `number` field of the tool result. Take every other value from the tool result
 
 Added action <number>
 
 - Owner: <owner name as the user gave it>
 - Task: <short_description> - <description>
 - Priority: <priority, or "not set">
-- Due: <weekday YYYY-MM-DD>
+- Due Date: <weekday YYYY-MM-DD>
 
 3. If the tool returned an error, or the result has no `number`, report that instead. Never invent an action number.
